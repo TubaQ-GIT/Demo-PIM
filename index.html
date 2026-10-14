@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo PIM – Product Onboarding</title>
+<style>
+:root{
+  --ink:#14202b; --ink-2:#4a5866; --ink-3:#7a8794;
+  --paper:#f2f4f6; --card:#ffffff; --line:#d9dfe5;
+  --brand:#0b5c8a; --brand-ink:#ffffff; --brand-soft:#e3eef5;
+  --ok:#1b7f5a; --ok-soft:#dff2ea; --bad:#b3261e; --bad-soft:#f8e1df;
+  --r:6px;
+  --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding:0 20px}
+header{background:var(--ink);color:#fff;padding:18px 0 0}
+header .wrap{display:flex;flex-direction:column;gap:14px}
+.brandline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brandline h1{font-size:20px;font-weight:600;margin:0;letter-spacing:.01em}
+.brandline p{margin:0;color:#b8c4cf;font-size:14px}
+nav[role=tablist]{display:flex;gap:2px;overflow-x:auto}
+nav button{font:inherit;color:#c9d3dc;background:transparent;border:0;padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+nav button:hover{color:#fff}
+nav button[aria-selected=true]{color:#fff;border-bottom-color:#5fb3e3;font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid #5fb3e3;outline-offset:2px}
+main{padding:24px 0 48px}
+.panel{display:none}
+.panel.active{display:block}
+.panel h2{font-size:17px;margin:0 0 4px;font-weight:600}
+.panel .lead{margin:0 0 18px;color:var(--ink-2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+input[type=text],input[type=number],select{width:100%;font:inherit;padding:9px 10px;border:1px solid #b9c3cd;border-radius:var(--r);background:#fff;color:var(--ink)}
+.hint{font-size:13px;color:var(--ink-3);margin:4px 0 0}
+.actions{margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;background:var(--brand);color:var(--brand-ink);border:0;border-radius:var(--r);padding:10px 18px;cursor:pointer}
+.btn:hover{background:#094a70}
+.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
+.out{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;margin:0}
+.kv dt{color:var(--ink-2);font-size:14px}
+.kv dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-all}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--brand-soft);color:var(--brand)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.msg{margin-top:14px;padding:10px 12px;border-radius:var(--r);font-size:14px}
+.msg.err{background:var(--bad-soft);color:var(--bad)}
+.msg:empty{display:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:14px}
+.stat .n{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:13px;color:var(--ink-2)}
+.stat.valid .n{color:var(--ok)}
+.stat.rejected .n{color:var(--bad)}
+.split{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line);margin:4px 0 18px}
+.split i{display:block;height:100%;transition:width .4s}
+.split .v{background:var(--ok)}
+.split .r{background:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--ink-2);padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid #eaeef2;font-variant-numeric:tabular-nums}
+tbody tr.rejection-row{cursor:pointer}
+tbody tr.rejection-row:hover{background:var(--brand-soft)}
+tbody tr.sel{background:var(--brand-soft)}
+.detail{margin-top:12px;padding:12px;border-left:3px solid var(--bad);background:var(--bad-soft);border-radius:0 var(--r) var(--r) 0}
+.detail:empty{display:none}
+.tbl-scroll{overflow-x:auto}
+h3{font-size:14px;margin:18px 0 6px;font-weight:600}
+footer{color:var(--ink-3);font-size:13px;padding-top:4px;padding-bottom:30px}
+main{padding-bottom:20px}
+@media (prefers-reduced-motion:reduce){.split i{transition:none}}
+@media (max-width:520px){.kv{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brandline">
+      <h1>Demo PIM</h1>
+      <p>Product onboarding and retailer syndication</p>
+    </div>
+    <nav role="tablist" aria-label="Workflow">
+      <button id="tab-import" role="tab" aria-selected="true" aria-controls="panel-import">Import</button>
+      <button id="tab-results" role="tab" aria-selected="false" aria-controls="panel-results">Results</button>
+      <button id="tab-bulkedit" role="tab" aria-selected="false" aria-controls="panel-bulkedit">Bulk edit</button>
+      <button id="tab-syndicate" role="tab" aria-selected="false" aria-controls="panel-syndicate">Syndicate</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="panel-import" class="panel active" role="tabpanel" aria-labelledby="tab-import">
+  <h2>Import a product catalog</h2>
+  <p class="lead">Upload a catalog file. Records are validated against the retailer you pick.</p>
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="fileName">File name</label>
+        <input type="text" id="fileName" value="catalog_50k.csv" autocomplete="off">
+        <p class="hint">Use .csv or .xlsx.</p>
+      </div>
+      <div>
+        <label for="recordCount">Record count</label>
+        <input type="number" id="recordCount" value="50000" min="1" max="1000000">
+        <p class="hint">Whole number, up to 1,000,000.</p>
+      </div>
+      <div>
+        <label for="retailer">Target retailer</label>
+        <select id="retailer">
+          <option value="RetailerA">RetailerA</option>
+          <option value="RetailerB">RetailerB</option>
+        </select>
+        <p class="hint" id="retailerRule"></p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnImport" type="button">Start import</button>
+      <label class="btn ghost" for="fileChooser" style="margin:0;cursor:pointer">Choose CSV file</label>
+      <input type="file" id="fileChooser" accept=".csv" hidden>
+    </div>
+    <div class="msg err" id="importError" role="alert"></div>
+    <div class="out" id="importOut" hidden>
+      <dl class="kv">
+        <dt>Job ID</dt><dd id="importJobId"></dd>
+        <dt>Import status</dt><dd><span class="pill" id="importStatus"></span></dd>
+        <dt>Records received</dt><dd id="importReceived"></dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section id="panel-results" class="panel" role="tabpanel" aria-labelledby="tab-results">
+  <h2>Validation results</h2>
+  <p class="lead">See how many records passed and why the rest were rejected.</p>
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="resultsJobId">Job ID</label>
+        <input type="text" id="resultsJobId" autocomplete="off" placeholder="JOB-50000-A-XXXXXX">
+      </div>
+    </div>
+    <div class="actions"><button class="btn" id="btnLoadResults" type="button">Load results</button></div>
+    <div class="msg err" id="resultError" role="alert"></div>
+    <div class="out" id="resultsOut" hidden>
+      <div class="stats">
+        <div class="stat valid"><div class="n" id="validCount">0</div><div class="l">Valid records</div></div>
+        <div class="stat rejected"><div class="n" id="rejectedCount">0</div><div class="l">Rejected records</div></div>
+        <div class="stat"><div class="n" id="qualityScore">0</div><div class="l">Quality score (%)</div></div>
+        <div class="stat"><div class="n" id="resultRetailer" style="font-size:18px;padding-top:6px">-</div><div class="l">Validated against</div></div>
+      </div>
+      <div class="split" aria-hidden="true"><i class="v" id="barValid" style="width:0"></i><i class="r" id="barRejected" style="width:0"></i></div>
+
+      <h3>Rejection reasons</h3>
+      <div class="tbl-scroll"><table id="reasonsTable"><thead><tr><th>Reason code</th><th>Records</th></tr></thead><tbody id="reasonsBody"></tbody></table></div>
+
+      <h3>Sample rejected records</h3>
+      <div class="tbl-scroll"><table id="rejectionsTable"><thead><tr><th>SKU</th><th>GTIN</th><th>Reason code</th></tr></thead><tbody id="rejectionsBody"></tbody></table></div>
+      <p class="hint">Select a record to see why it was rejected.</p>
+      <div class="detail" id="reasonMessage" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<section id="panel-bulkedit" class="panel" role="tabpanel" aria-labelledby="tab-bulkedit">
+  <h2>Bulk edit</h2>
+  <p class="lead">Apply one change to many compliant records at once. Every edit is audited.</p>
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="editJobId">Job ID</label>
+        <input type="text" id="editJobId" autocomplete="off" placeholder="JOB-50000-A-XXXXXX">
+      </div>
+      <div>
+        <label for="editOperation">Operation</label>
+        <select id="editOperation">
+          <option value="CONVERT_UNITS_OZ_TO_G">Convert units (oz to g)</option>
+          <option value="NORMALIZE_BRAND_NAME">Normalize brand name</option>
+          <option value="SET_COUNTRY_OF_ORIGIN">Set country of origin</option>
+        </select>
+      </div>
+      <div>
+        <label for="editCount">Records to edit</label>
+        <input type="number" id="editCount" value="5000" min="1">
+      </div>
+    </div>
+    <div class="actions"><button class="btn" id="btnApplyEdit" type="button">Apply edit</button></div>
+    <div class="msg err" id="editError" role="alert"></div>
+    <div class="out" id="editOut" hidden>
+      <dl class="kv">
+        <dt>Records updated</dt><dd id="updatedCount"></dd>
+        <dt>Records failed</dt><dd id="failedCount"></dd>
+        <dt>Audit ID</dt><dd id="auditId"></dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section id="panel-syndicate" class="panel" role="tabpanel" aria-labelledby="tab-syndicate">
+  <h2>Syndicate to a retailer</h2>
+  <p class="lead">Send compliant records only. Rejected records stay behind until they're fixed.</p>
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="syndJobId">Job ID</label>
+        <input type="text" id="syndJobId" autocomplete="off" placeholder="JOB-50000-A-XXXXXX">
+      </div>
+      <div>
+        <label for="syndRetailer">Retailer</label>
+        <select id="syndRetailer">
+          <option value="RetailerA">RetailerA</option>
+          <option value="RetailerB">RetailerB</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions"><button class="btn" id="btnSyndicate" type="button">Syndicate compliant records</button></div>
+    <div class="msg err" id="syndError" role="alert"></div>
+    <div class="out" id="syndOut" hidden>
+      <dl class="kv">
+        <dt>Syndication status</dt><dd><span class="pill ok" id="syndStatus"></span></dd>
+        <dt>Records sent</dt><dd id="recordsSent"></dd>
+        <dt>Records skipped</dt><dd id="recordsSkipped"></dd>
+        <dt>Syndication ID</dt><dd id="syndicationId"></dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="wrap">Demo environment with simulated data. Data source: <span id="apiMode">checking</span>.</footer>
+
+<script>
+var RETAILERS = {
+  RetailerA: { code: 'A', rate: 0.04, rule: 'Title max 80 characters, images min 1000px' },
+  RetailerB: { code: 'B', rate: 0.07, rule: 'Allergen and nutrition data mandatory' }
+};
+var REASON_TEXT = {
+  INVALID_GTIN_CHECK_DIGIT: 'GTIN check digit is invalid.',
+  MISSING_REQUIRED_ATTRIBUTE: "Required attribute 'net_content' is missing.",
+  TITLE_TOO_LONG: 'Product title exceeds 80 characters for RetailerA.',
+  ALLERGEN_DATA_MISSING: 'Allergen declaration is required for RetailerB.'
+};
+function gtinCheck(d12) {
+  var s = 0;
+  for (var i = 0; i < 12; i++) s += Number(d12.charAt(i)) * (i % 2 === 0 ? 1 : 3);
+  return (10 - (s % 10)) % 10;
+}
+function parseJob(id) {
+  var m = /^JOB-(\d+)-([AB])-([A-Z0-9]{6})$/.exec(id || '');
+  if (!m) return null;
+  return { id: id, count: Number(m[1]), retailer: m[2] === 'A' ? 'RetailerA' : 'RetailerB', tag: m[3] };
+}
+function seedOf(tag) {
+  var n = 0;
+  for (var i = 0; i < tag.length; i++) n += tag.charCodeAt(i);
+  return n % 9000;
+}
+function summarize(job) {
+  var cfg = RETAILERS[job.retailer];
+  var rejected = Math.round(job.count * cfg.rate);
+  var valid = job.count - rejected;
+  var gtin = Math.round(rejected * 0.4);
+  var missing = Math.round(rejected * 0.35);
+  var third = rejected - gtin - missing;
+  var thirdCode = job.retailer === 'RetailerA' ? 'TITLE_TOO_LONG' : 'ALLERGEN_DATA_MISSING';
+  var reasons = [
+    { code: 'INVALID_GTIN_CHECK_DIGIT', count: gtin },
+    { code: 'MISSING_REQUIRED_ATTRIBUTE', count: missing },
+    { code: thirdCode, count: third }
+  ].filter(function (r) { return r.count > 0; });
+  return {
+    jobId: job.id, status: 'COMPLETED', retailer: job.retailer,
+    recordCount: job.count, validCount: valid, rejectedCount: rejected,
+    qualityScore: Math.round((valid / job.count) * 1000) / 10,
+    reasons: reasons
+  };
+}
+function sampleRejections(job) {
+  var s = summarize(job);
+  if (!s.reasons.length) return [];
+  var seed = seedOf(job.tag);
+  var out = [];
+  var n = Math.min(5, s.rejectedCount);
+  for (var i = 0; i < n; i++) {
+    var code = s.reasons[i % s.reasons.length].code;
+    var base = '5901234' + String(10000 + ((seed + i * 37) % 89999)).slice(0, 5);
+    var good = gtinCheck(base);
+    var bad = code === 'INVALID_GTIN_CHECK_DIGIT' ? (good + 1) % 10 : good;
+    var msg = REASON_TEXT[code];
+    if (code === 'INVALID_GTIN_CHECK_DIGIT') msg = 'GTIN check digit is invalid. Expected ' + good + ', found ' + bad + '.';
+    out.push({ sku: 'SKU-' + (100001 + seed + i), gtin: base + bad, reasonCode: code, reason: msg });
+  }
+  return out;
+}
+function res(status, json) { return { status: status, json: json }; }
+function err(status, code, message) { return res(status, { error: code, message: message }); }
+function route(method, path, body, query) {
+  path = (path || '/').replace(/\/+$/, '') || '/';
+  body = body || {}; query = query || {};
+  var m, job;
+  if (method === 'GET' && path === '/health')
+    return res(200, { status: 'UP', service: 'demo-pim-api', version: '1.0.0', timestamp: new Date().toISOString() });
+
+  if (method === 'POST' && path === '/imports') {
+    var name = String(body.fileName || '');
+    var count = body.recordCount;
+    if (!/\.(csv|xlsx)$/i.test(name)) return err(400, 'UNSUPPORTED_FILE_TYPE', 'fileName must end with .csv or .xlsx.');
+    if (typeof count !== 'number' || !isFinite(count) || Math.floor(count) !== count || count < 1 || count > 1000000)
+      return err(400, 'INVALID_RECORD_COUNT', 'recordCount must be a whole number between 1 and 1,000,000.');
+    if (!RETAILERS[body.retailer]) return err(400, 'UNKNOWN_RETAILER', 'retailer must be RetailerA or RetailerB.');
+    var tag = Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g, '').padEnd(6, 'X').slice(0, 6);
+    return res(202, { jobId: 'JOB-' + count + '-' + RETAILERS[body.retailer].code + '-' + tag, status: 'QUEUED',
+      fileName: name, recordCount: count, retailer: body.retailer });
+  }
+  if ((m = /^\/imports\/([^\/]+)\/rejections$/.exec(path)) && method === 'GET') {
+    job = parseJob(m[1]);
+    if (!job) return err(404, 'JOB_NOT_FOUND', 'No import job with that ID.');
+    return res(200, { jobId: job.id, rejections: sampleRejections(job) });
+  }
+  if ((m = /^\/imports\/([^\/]+)$/.exec(path)) && method === 'GET') {
+    job = parseJob(m[1]);
+    if (!job) return err(404, 'JOB_NOT_FOUND', 'No import job with that ID.');
+    return res(200, summarize(job));
+  }
+  if (method === 'POST' && path === '/records/bulk-edit') {
+    job = parseJob(body.jobId);
+    if (!job) return err(404, 'JOB_NOT_FOUND', 'No import job with that ID.');
+    var ops = ['CONVERT_UNITS_OZ_TO_G', 'NORMALIZE_BRAND_NAME', 'SET_COUNTRY_OF_ORIGIN'];
+    if (ops.indexOf(body.operation) < 0) return err(400, 'UNKNOWN_OPERATION', 'operation must be one of ' + ops.join(', ') + '.');
+    var n = body.recordCount;
+    if (typeof n !== 'number' || Math.floor(n) !== n || n < 1) return err(400, 'INVALID_RECORD_COUNT', 'recordCount must be a whole number of at least 1.');
+    var sm = summarize(job);
+    var updated = Math.min(n, sm.validCount);
+    return res(200, { jobId: job.id, operation: body.operation, requested: n, updated: updated,
+      failed: 0, auditId: 'AUD-' + job.id.slice(4) + '-' + ops.indexOf(body.operation) });
+  }
+  if (method === 'POST' && path === '/syndications') {
+    job = parseJob(body.jobId);
+    if (!job) return err(404, 'JOB_NOT_FOUND', 'No import job with that ID.');
+    if (!RETAILERS[body.retailer]) return err(400, 'UNKNOWN_RETAILER', 'retailer must be RetailerA or RetailerB.');
+    if (body.retailer !== job.retailer)
+      return err(409, 'RETAILER_MISMATCH', 'This job was validated against ' + job.retailer + '. Re-validate before sending to ' + body.retailer + '.');
+    var s2 = summarize(job);
+    return res(202, { syndicationId: 'SYN-' + job.id.slice(4), jobId: job.id, retailer: job.retailer,
+      status: 'ACCEPTED', recordsSent: s2.validCount, recordsSkipped: s2.rejectedCount });
+  }
+  if ((m = /^\/syndications\/(SYN-[^\/]+)$/.exec(path)) && method === 'GET') {
+    job = parseJob('JOB-' + m[1].slice(4));
+    if (!job) return err(404, 'SYNDICATION_NOT_FOUND', 'No syndication with that ID.');
+    var s3 = summarize(job);
+    return res(200, { syndicationId: m[1], jobId: job.id, retailer: job.retailer, status: 'DELIVERED',
+      recordsSent: s3.validCount, recordsSkipped: s3.rejectedCount });
+  }
+  if (method === 'GET' && path === '/gtin/validate') {
+    var g = String(query.gtin || '');
+    if (!/^\d{13}$/.test(g)) return err(400, 'INVALID_GTIN_FORMAT', 'gtin must be exactly 13 digits.');
+    var exp = gtinCheck(g.slice(0, 12));
+    return res(200, { gtin: g, valid: exp === Number(g.charAt(12)), expectedCheckDigit: exp });
+  }
+  return err(404, 'NOT_FOUND', 'No route for ' + method + ' ' + path + '.');
+}
+
+</script>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+function fmt(n){return Number(n).toLocaleString('en-US')}
+function setMode(t){$('apiMode').textContent=t}
+
+async function api(method,path,body){
+  try{
+    var r=await fetch('/api'+path,{method:method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+    if((r.headers.get('content-type')||'').indexOf('application/json')<0) throw new Error('no api');
+    setMode('live API');
+    return {status:r.status,json:await r.json()};
+  }catch(e){
+    setMode('local simulation');
+    var q={},p=path,i=path.indexOf('?');
+    if(i>=0){p=path.slice(0,i);path.slice(i+1).split('&').forEach(function(kv){var a=kv.split('=');q[a[0]]=decodeURIComponent(a[1]||'')})}
+    return route(method,p,body,q);
+  }
+}
+
+var tabs=['import','results','bulkedit','syndicate'];
+tabs.forEach(function(t){
+  $('tab-'+t).addEventListener('click',function(){
+    tabs.forEach(function(x){
+      var on=x===t;
+      $('tab-'+x).setAttribute('aria-selected',on?'true':'false');
+      $('panel-'+x).classList.toggle('active',on);
+    });
+  });
+});
+
+function showRule(){$('retailerRule').textContent=RETAILERS[$('retailer').value].rule}
+$('retailer').addEventListener('change',showRule);showRule();
+
+$('fileChooser').addEventListener('change',function(e){
+  var f=e.target.files[0];if(!f)return;
+  $('fileName').value=f.name;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var lines=String(rd.result).split(/\r?\n/).filter(function(l){return l.trim().length});
+    $('recordCount').value=Math.max(1,lines.length-1);
+  };
+  rd.readAsText(f);
+});
+
+function fail(id,r){var el=$(id);el.textContent=(r.json&&r.json.message)||'Something went wrong. Try again.'}
+function clear(id){$(id).textContent=''}
+
+$('btnImport').addEventListener('click',async function(){
+  clear('importError');$('importOut').hidden=true;
+  var r=await api('POST','/imports',{fileName:$('fileName').value.trim(),recordCount:Number($('recordCount').value),retailer:$('retailer').value});
+  if(r.status!==202){fail('importError',r);return}
+  $('importJobId').textContent=r.json.jobId;
+  $('importStatus').textContent=r.json.status;
+  $('importReceived').textContent=fmt(r.json.recordCount);
+  $('importOut').hidden=false;
+});
+
+$('btnLoadResults').addEventListener('click',async function(){
+  clear('resultError');$('resultsOut').hidden=true;$('reasonMessage').textContent='';
+  var id=$('resultsJobId').value.trim();
+  if(!id){$('resultError').textContent='Enter a job ID.';return}
+  var r=await api('GET','/imports/'+encodeURIComponent(id));
+  if(r.status!==200){fail('resultError',r);return}
+  var s=r.json;
+  $('validCount').textContent=fmt(s.validCount);
+  $('rejectedCount').textContent=fmt(s.rejectedCount);
+  $('qualityScore').textContent=s.qualityScore;
+  $('resultRetailer').textContent=s.retailer;
+  $('barValid').style.width=(s.validCount/s.recordCount*100)+'%';
+  $('barRejected').style.width=(s.rejectedCount/s.recordCount*100)+'%';
+  $('reasonsBody').innerHTML=s.reasons.map(function(x){return '<tr><td>'+x.code+'</td><td>'+fmt(x.count)+'</td></tr>'}).join('')||'<tr><td colspan="2">No rejected records.</td></tr>';
+  var rj=await api('GET','/imports/'+encodeURIComponent(id)+'/rejections');
+  var rows=(rj.json.rejections||[]);
+  $('rejectionsBody').innerHTML=rows.map(function(x,i){
+    return '<tr class="rejection-row" tabindex="0" data-i="'+i+'"><td>'+x.sku+'</td><td>'+x.gtin+'</td><td>'+x.reasonCode+'</td></tr>'
+  }).join('')||'<tr><td colspan="3">Nothing to fix.</td></tr>';
+  Array.prototype.forEach.call($('rejectionsBody').querySelectorAll('.rejection-row'),function(tr){
+    function pick(){
+      Array.prototype.forEach.call($('rejectionsBody').children,function(x){x.classList.remove('sel')});
+      tr.classList.add('sel');
+      $('reasonMessage').textContent=rows[Number(tr.getAttribute('data-i'))].reason;
+    }
+    tr.addEventListener('click',pick);
+    tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}});
+  });
+  $('resultsOut').hidden=false;
+});
+
+$('btnApplyEdit').addEventListener('click',async function(){
+  clear('editError');$('editOut').hidden=true;
+  var id=$('editJobId').value.trim();
+  if(!id){$('editError').textContent='Enter a job ID.';return}
+  var r=await api('POST','/records/bulk-edit',{jobId:id,operation:$('editOperation').value,recordCount:Number($('editCount').value)});
+  if(r.status!==200){fail('editError',r);return}
+  $('updatedCount').textContent=fmt(r.json.updated);
+  $('failedCount').textContent=fmt(r.json.failed);
+  $('auditId').textContent=r.json.auditId;
+  $('editOut').hidden=false;
+});
+
+$('btnSyndicate').addEventListener('click',async function(){
+  clear('syndError');$('syndOut').hidden=true;
+  var id=$('syndJobId').value.trim();
+  if(!id){$('syndError').textContent='Enter a job ID.';return}
+  var r=await api('POST','/syndications',{jobId:id,retailer:$('syndRetailer').value});
+  if(r.status!==202){fail('syndError',r);return}
+  $('syndStatus').textContent=r.json.status;
+  $('recordsSent').textContent=fmt(r.json.recordsSent);
+  $('recordsSkipped').textContent=fmt(r.json.recordsSkipped);
+  $('syndicationId').textContent=r.json.syndicationId;
+  $('syndOut').hidden=false;
+});
+setMode('ready');
+})();
+</script>
+</body>
+</html>
