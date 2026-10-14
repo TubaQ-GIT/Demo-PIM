@@ -368,7 +368,7 @@ function route(method, path, body, query) {
 <script>
 (function(){
 var $=function(id){return document.getElementById(id)};
-function fmt(n){return Number(n).toLocaleString('en-US')}
+function fmt(n){return String(n)}
 function setMode(t){$('apiMode').textContent=t}
 
 async function api(method,path,body){
